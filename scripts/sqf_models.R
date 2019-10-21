@@ -58,6 +58,7 @@ test_sqf<-sqf_data %>% slice(split_size+split_size2+1:n())
 
 #B2.1
 
+#version 1 of function to get auc
 get_auc<-function(name1,name2){
  # mod<-glm(found.weapon~name1+name2+precinct,data=train_sqf, family = 'binomial')
   mod<-glm(as.formula(paste(colnames(train_sqf)[3], "~",
@@ -71,7 +72,7 @@ get_auc<-function(name1,name2){
   return(auc)
 }
 
-
+#version 2 of function to get auc
 get_auc<-function(mod){
     validation_sqf<-validation_sqf%>%
     mutate(predicted.probability =predict(mod, validation_sqf, type='response'))
@@ -85,6 +86,7 @@ train_sqf_comb<-train_sqf%>%select(-year,-id,-precinct,-found.weapon)
 combination<-combinations(33,2,colnames(train_sqf_comb))
 model_performance<-tibble(feature_one=combination[,1],feature_two=combination[,2],validation_auc=rep(NA,528))
 
+#version 1 to get auc and model_performance
 auc<-vector()
 for (i in 1:528){
   mod<-glm(as.formula(paste(colnames(train_sqf)[3], "~",
@@ -93,16 +95,19 @@ for (i in 1:528){
 }
 model_performance$validation_auc<-auc
 
-
+#version 2 to get auc and model_performance
 for (i in 1:528){
   auc[i]<-get_auc(name1 = combination[i,1],name2 =combination[i,2]) 
 }
 model_performance$validation_auc<-auc
 
+#feature one
 model_performance$feature_one[which(auc==max(auc))]
+#feature two
 model_performance$feature_two[which(auc==max(auc))]
 
 
+#version 3 to get auc and model_performance
 model_performance %>% 
   rowwise() %>% 
   do(data.frame(validation_auc=get_auc(name1 = .$feature_one,name2=.$feature_two)))
