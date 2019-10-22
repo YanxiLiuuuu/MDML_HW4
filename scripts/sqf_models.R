@@ -11,7 +11,7 @@ set.seed(2048)
 #B1.2
 
 #Read data
-sqf_data<-read_csv("../data_hw4/sqf_08_16.csv") 
+sqf_full<-read_csv("../data_hw4/sqf_08_16.csv") 
 relevant_cols <- c('id', 'year', 
                    'found.weapon','suspect.age', 'suspect.build', 
                    'suspect.sex', 'suspect.height', 'suspect.weight',
@@ -28,7 +28,8 @@ relevant_cols <- c('id', 'year',
                    'additional.time', 'additional.sights', 'additional.other', 
                    'radio.run', 'day', 'month', 'time.period','officer.uniform')
 
-#test<-sqf_data
+sqf_data<- sqf_full
+
 sqf_data<- sqf_data %>%
   filter(suspected.crime=="cpw")%>%
   filter(year>=2013 & year<=2015)
@@ -100,8 +101,8 @@ max_auc<-max(auc);max_auc
 newdata<-rbind(train_sqf,validation_sqf)
 
 #new model
-#mod2<-glm(found.weapon~location.housing+stopped.bc.object+precinct,family = "binomial",data=newdata)
-mod2<-glm(found.weapon~stopped.bc.bulge+stopped.bc.object+precinct,family = "binomial",data=newdata)
+mod2<-glm(found.weapon~location.housing+stopped.bc.object+precinct,family = "binomial",data=newdata)
+#mod2<-glm(found.weapon~stopped.bc.bulge+stopped.bc.object+precinct,family = "binomial",data=newdata)
 
 #calculate auc
 test_sqf <- test_sqf  %>% mutate(predicted.probability =  
@@ -153,8 +154,8 @@ auc3<-test.perf2@y.values[[1]]# 0.8121758
 
 #B4.1
 #Read data
-sqf_data2<-read_csv("../data_hw4/sqf_08_16.csv") 
-
+sqf_full2<-read_csv("../data_hw4/sqf_08_16.csv") 
+sqf_data2<-sqf_full2
 sqf_data2<- sqf_data2 %>%
   filter(suspected.crime=="cpw")
 
@@ -167,39 +168,30 @@ sqf_data2<- sqf_data2 %>%
   filter(complete.cases(sqf_data2))
 
 #create dataset to fit model
-sqf_data2_08<-sqf_data2%>%filter(year==2008)%>%select(-id,-year)
+sqf_data2_08<-sqf_data2%>%filter(year==2008)
 #create dataset to calculate auc
-sqf_data2_09_16<-sqf_data2%>%filter(year>=2009 & year<=2016)%>%select(-id,-year)
+sqf_data2_09_16<-sqf_data2%>%filter(year>=2009 & year<=2016)
 
 #fit a model
 mod4<-glm(found.weapon~.,data =sqf_data2_08,family = "binomial" )
 
-#calculate auc  ???
-sqf_data2_09_16_new<-filter(sqf_data2_09_16,precinct!=121)
-
-sqf_data2_09_16 <- sqf_data2_09_16 %>% mutate(predicted.probability =  
-                                          predict(mod4, sqf_data2_09_16_new, type='response'))
-
-test.pred3 <- prediction(sqf_data2_09_16$predicted.probability, sqf_data2_09_16$found.weapon)
-
-test.perf3 <- performance(test.pred3, "auc")
-auc4<-test.perf3@y.values[[1]]
-
-
-auc4<-vector()
-for (i in 2009:2016){
-  sqf<-filter(sqf_data2_09_16,year==i)
+#calculate auc  
+interval<-unique(sqf_data2_09_16$year)
+auc_09_16<-vector()
+sqf_data2_09_16<-filter(sqf_data2_09_16,precinct!=121)
+for (i in 1:8){
+  sqf<-filter(sqf_data2_09_16,year==interval[i])
   predicted.probability<- predict(mod4, sqf, type='response')
   test.pred <- prediction(predicted.probability, sqf$found.weapon)
   test.perf <- performance(test.pred, "auc")
-  auc4[i]<-test.perf@y.values[[1]]
+  auc_09_16[i]<-test.perf@y.values[[1]]
 }
   
-df<-data.frame(auc4=auc4,year=2009:2016)
-
+df<-data.frame(auc_09_16=auc_09_16,year=2009:2016)
 
 #B4.2
-p2<-ggplot(data=df,aes(x=year,y=auc4))+
+p2<-ggplot(data=df,aes(x=year,y=auc_09_16))+
+  geom_point(size=2, shape=23)+
   ggtitle("Year vs AUC")+
   ylab("Auc")+
   xlab("Years")
